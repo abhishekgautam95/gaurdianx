@@ -2,7 +2,12 @@
 
 GuardianX is an innovative hackathon project that provides AI-powered protection against scams, rug pulls, and phishing attacks on Solana and Avalanche blockchains. Before any transaction is signed, GuardianX analyzes it in real-time and provides a comprehensive risk assessment.
 
-![GuardianX Demo](https://images.pexels.com/photos/5935791/pexels-photo-5935791.jpeg?auto=compress&cs=tinysrgb&w=1200&h=400&fit=crop)
+![GuardianX Demo]
+<img width="1920" height="1080" alt="Screenshot from 2025-09-21 20-46-59" src="https://github.com/user-attachments/assets/b7e84d55-2f87-4645-9fec-358f753bceca" />
+
+<img width="1920" height="1080" alt="Screenshot from 2025-09-21 20-47-07" src="https://github.com/user-attachments/assets/3e1d0f1f-44f9-4c6b-a14b-feb2a0d334fc" />
+<img width="1920" height="1080" alt="Screenshot from 2025-09-21 20-47-23" src="https://github.com/user-attachments/assets/19277bf0-9e70-4481-a4c5-657fd215cc19" />
+
 
 ## 🚀 Features
 
