@@ -1,0 +1,60 @@
+name: GuardianX Security & Invariant Verification CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  code-quality-and-unit-tests:
+    name: Lint, Strict Typecheck & Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run Strict TypeScript Verification
+        run: npm run typecheck
+
+      - name: Run GuardianX Security Test Suite
+        run: npm test
+
+      - name: Build Production SDK & UI Bundle
+        run: npm run build
+
+  ephemeral-fork-invariant-simulation:
+    name: Ephemeral Fork Invariant & PoE Simulation
+    runs-on: ubuntu-latest
+    needs: code-quality-and-unit-tests
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install Dependencies & Build SDK
+        run: |
+          npm ci
+          npm run build:sdk
+
+      - name: Verify Protocol Invariants on Ephemeral Fork
+        run: |
+          node dist/sdk/cli/index.js simulate --target 0x1111111111111111111111111111111111111111
+          node dist/sdk/cli/index.js listen --once

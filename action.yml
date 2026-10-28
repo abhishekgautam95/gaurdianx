@@ -1,0 +1,41 @@
+name: 'GuardianX Invariant & Proof-of-Exploit Gate'
+description: 'Simulate smart contract transactions in an ephemeral fork, enforce state invariants, and verify AI agent guardrails on every PR.'
+author: 'GuardianX Team'
+branding:
+  icon: 'shield'
+  color: 'blue'
+
+inputs:
+  target-contract:
+    description: 'Target smart contract address to verify invariants against'
+    required: false
+    default: '0x1111111111111111111111111111111111111111'
+  calldata:
+    description: 'Optional hex calldata payload to simulate against target contract'
+    required: false
+    default: '0xa9059cbb00000000000000000000000011111111111111111111111111111111111111110000000000000000000000000000000000000000000000000de0b6b3a7640000'
+  node-version:
+    description: 'Node.js runtime version'
+    required: false
+    default: '22'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: Install & Build GuardianX Engine
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: |
+        npm ci
+        npm run build:sdk
+
+    - name: Run Ephemeral Fork Invariant Simulation
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: |
+        node dist/sdk/cli/index.js simulate --target "${{ inputs.target-contract }}" --calldata "${{ inputs.calldata }}"

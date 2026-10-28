@@ -1,7 +1,19 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Shield, AlertTriangle, XCircle, CheckCircle, Info, Terminal } from 'lucide-react';
+import { ArrowLeft, Shield, AlertTriangle, XCircle, CheckCircle, Info, Terminal, GitCompare } from 'lucide-react';
 import { Link } from 'react-router-dom';
+
+interface HistoricalReplaySummary {
+  title: string;
+  protocol: string;
+  date: string;
+  historicalLossUsd: string;
+  attackCategory: string;
+  summary: string;
+  preVaultBalanceEth: string;
+  postVaultBalanceWithoutGuardianEth: string;
+  postVaultBalanceWithGuardianEth: string;
+}
 
 interface AnalysisResult {
   riskScore: number;
@@ -14,6 +26,7 @@ interface AnalysisResult {
   foundryPoE?: string;
   mitigationBundleHash?: string;
   mitigationActions?: string[];
+  historicalReplay?: HistoricalReplaySummary;
 }
 
 const Result = () => {
@@ -87,6 +100,58 @@ const Result = () => {
             </p>
           )}
         </motion.div>
+
+        {/* Visual Verification State Diff Card (Historical Replay) */}
+        {result.historicalReplay && (
+          <motion.div
+            initial={{ y: 40, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.7, delay: 0.05 }}
+            className="bg-gradient-to-br from-slate-900 to-indigo-950 text-white rounded-2xl shadow-xl p-8 mb-8"
+          >
+            <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
+              <div className="flex items-center space-x-2">
+                <GitCompare className="h-6 w-6 text-amber-400" />
+                <h3 className="text-2xl font-bold">
+                  Historical Attack Replay: {result.historicalReplay.title}
+                </h3>
+              </div>
+              <span className="px-3 py-1 rounded-full bg-red-500/20 border border-red-400/40 text-red-200 text-xs font-semibold">
+                Historical Loss: {result.historicalReplay.historicalLossUsd} ({result.historicalReplay.date})
+              </span>
+            </div>
+            <p className="text-sm text-indigo-200 mb-6">{result.historicalReplay.summary}</p>
+
+            <div className="grid md:grid-cols-3 gap-4">
+              <div className="bg-white/10 rounded-xl p-4 border border-white/10">
+                <div className="text-xs text-indigo-200 uppercase font-semibold mb-1">
+                  Pre-Attack Vault Reserve
+                </div>
+                <div className="text-xl font-bold font-mono text-white">
+                  {result.historicalReplay.preVaultBalanceEth}
+                </div>
+              </div>
+
+              <div className="bg-red-500/15 rounded-xl p-4 border border-red-400/30">
+                <div className="text-xs text-red-200 uppercase font-semibold mb-1">
+                  Unprotected Post-State (Drained)
+                </div>
+                <div className="text-xl font-bold font-mono text-red-300">
+                  {result.historicalReplay.postVaultBalanceWithoutGuardianEth}
+                </div>
+              </div>
+
+              <div className="bg-emerald-500/15 rounded-xl p-4 border border-emerald-400/30">
+                <div className="text-xs text-emerald-200 uppercase font-semibold mb-1">
+                  GuardianX Protected State
+                </div>
+                <div className="text-lg font-bold font-mono text-emerald-300">
+                  {result.historicalReplay.postVaultBalanceWithGuardianEth}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         {/* Risk Score Card */}
         <motion.div

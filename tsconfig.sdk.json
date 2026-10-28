@@ -21,6 +21,8 @@
     "src/core/**/*.ts",
     "src/agents/**/*.ts",
     "src/relays/**/*.ts",
+    "src/signers/**/*.ts",
+    "src/providers/**/*.ts",
     "src/cli/**/*.ts",
     "src/index.ts"
   ]

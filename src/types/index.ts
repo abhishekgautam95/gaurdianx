@@ -256,3 +256,130 @@ export interface GuardianXConfig {
     onCircuitBreaker?: (ctx: EmergencyCallbackContext, receipt: MitigationExecutionReceipt) => void | Promise<void>;
   };
 }
+
+/**
+ * Milestone 1: Production Signer & Key Management Abstraction (KMS / Safe Multisig / Local)
+ */
+export interface TransactionRequest {
+  to: string;
+  data: string;
+  value?: bigint;
+  nonce?: number;
+  gasLimit?: bigint;
+  maxFeePerGas?: bigint;
+  maxPriorityFeePerGas?: bigint;
+  chainId?: number;
+}
+
+export interface TypedDataDomain {
+  name?: string;
+  version?: string;
+  chainId?: number;
+  verifyingContract?: string;
+  salt?: string;
+}
+
+export interface TypedDataField {
+  name: string;
+  type: string;
+}
+
+export type TypedDataTypes = Record<string, TypedDataField[]>;
+
+export interface IKeySigner {
+  readonly signerType: 'local' | 'kms' | 'multisig-safe';
+  getAddress(): Promise<string>;
+  signTransaction(tx: TransactionRequest): Promise<string>;
+  signTypedData(
+    domain: TypedDataDomain,
+    types: TypedDataTypes,
+    value: Record<string, unknown>
+  ): Promise<string>;
+}
+
+export interface SafeTransactionProposal {
+  safeAddress: string;
+  chainId: number;
+  to: string;
+  value: string;
+  data: string;
+  operation: 0 | 1; // 0 = Call, 1 = DelegateCall
+  safeTxGas: string;
+  baseGas: string;
+  gasPrice: string;
+  gasToken: string;
+  refundReceiver: string;
+  nonce: number;
+  safeTxHash: string;
+  proposerAddress: string;
+  eip712Signature: string;
+  timestamp: string;
+}
+
+/**
+ * Milestone 2: Resilient Multi-RPC Fallback & Mempool Stream Types
+ */
+export interface RpcEndpointConfig {
+  name: string;
+  httpUrl: string;
+  wsUrl?: string;
+  priority: number;
+  timeoutMs?: number;
+  maxRetries?: number;
+}
+
+export interface RpcHealthMetrics {
+  name: string;
+  httpUrl: string;
+  healthy: boolean;
+  latencyMs: number;
+  consecutiveFailures: number;
+  score: number;
+  lastCheckedAt: string;
+}
+
+export interface MempoolBlockHeader {
+  number: number;
+  hash: string;
+  parentHash: string;
+  timestamp: number;
+  baseFeePerGasWei?: bigint;
+}
+
+export interface MempoolStreamEvent {
+  type: 'newHeads' | 'pendingTransactions';
+  blockHeader?: MempoolBlockHeader;
+  pendingTxHash?: string;
+  pendingTx?: TransactionPayload;
+  receivedAt: number;
+}
+
+/**
+ * Milestone 3: Historical Mock Attack Scenario Types
+ */
+export type AttackScenarioId =
+  | 'euler-flashloan-2023'
+  | 'curve-readonly-reentrancy-2023'
+  | 'proxy-ownership-hijack';
+
+export interface HistoricalAttackScenario {
+  id: AttackScenarioId;
+  title: string;
+  protocol: string;
+  date: string;
+  historicalLossUsd: string;
+  summary: string;
+  attackCategory: 'Flash Loan Manipulation' | 'Read-Only Reentrancy' | 'Access Control / Proxy Hijack';
+  txPayload: TransactionPayload;
+  preState: ChainStateSnapshot;
+  invariants: InvariantRule[];
+}
+
+export interface AttackReplayVerificationResult {
+  scenario: HistoricalAttackScenario;
+  analysis: TransactionAnalysisResult;
+  preVaultBalanceEth: string;
+  postVaultBalanceWithoutGuardianEth: string;
+  postVaultBalanceWithGuardianEth: string;
+  rescuedValueWei: bigint;
+}

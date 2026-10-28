@@ -2,6 +2,7 @@ import {
   EmergencyActionType,
   EmergencyTransaction,
   FlashbotsBundleTransaction,
+  IKeySigner,
   PrivateRelayBundleRequest,
   PrivateRelayBundleResponse,
 } from '../types/index.js';
@@ -19,16 +20,16 @@ export const EMERGENCY_SELECTORS: Record<EmergencyActionType, string> = {
 export interface PrivateRelayConfig {
   relayName: 'flashbots' | 'eden' | 'mev-blocker' | 'custom';
   relayUrl: string;
-  signerPrivateKey?: string;
+  /** Production signer abstraction (LocalPrivateKeySigner, KmsSignerAdapter, or MultisigSafeSignerAdapter) */
+  signer?: IKeySigner;
   defaultPriorityFeeGwei?: number;
 }
 
 /**
- * Phase 2: Private Mempool Connector (Flashbots / Eden / MEV-Blocker Bundler API).
+ * Phase 2 & Milestone 1: Private Mempool Connector (Flashbots / Eden / MEV-Blocker Bundler API).
  *
- * Packages emergency mitigation transactions into atomic MEV bundles submitted directly
- * to block builders via `eth_sendBundle` / `eth_callBundle`, ensuring rescue payloads
- * front-run malicious transactions without leaking to the public mempool.
+ * Consumes `IKeySigner` (never raw private keys) to sign and package emergency mitigation
+ * transactions into atomic MEV bundles submitted directly to block builders.
  */
 export class PrivateRelayClient {
   private readonly config: PrivateRelayConfig;
@@ -38,6 +39,10 @@ export class PrivateRelayClient {
       defaultPriorityFeeGwei: 50,
       ...config,
     };
+  }
+
+  public getSigner(): IKeySigner | undefined {
+    return this.config.signer;
   }
 
   /**
@@ -57,7 +62,6 @@ export class PrivateRelayClient {
       const cleanSafe = safeAddress.toLowerCase().replace(/^0x/, '').padStart(64, '0');
       calldata = `${selector}${cleanSafe}`;
     } else if (action === 'throttleParameters') {
-      // Set throttle limit to 10% (1000 bps)
       const bpsHex = (1000).toString(16).padStart(64, '0');
       calldata = `${selector}${bpsHex}`;
     }
@@ -78,8 +82,8 @@ export class PrivateRelayClient {
   }
 
   /**
-   * Submits an atomic front-run rescue bundle via private relay (`eth_sendBundle`).
-   * Simulates bundle execution first (`eth_callBundle`) to guarantee zero revert cost.
+   * Signs each emergency transaction via `IKeySigner` (if configured) and submits an atomic
+   * front-run rescue bundle via private relay (`eth_sendBundle`).
    */
   public async submitFrontrunRescueBundle(params: {
     targetBlockNumber: number;
@@ -92,10 +96,32 @@ export class PrivateRelayClient {
       throw new Error('Cannot submit an empty rescue bundle to private relay');
     }
 
-    const bundleTxs: FlashbotsBundleTransaction[] = emergencyTransactions.map((tx) => ({
-      transaction: tx,
-      canRevert: false,
-    }));
+    const bundleTxs: FlashbotsBundleTransaction[] = [];
+
+    for (let idx = 0; idx < emergencyTransactions.length; idx++) {
+      const tx = emergencyTransactions[idx];
+      let signedTransaction: string | undefined;
+
+      if (this.config.signer) {
+        signedTransaction = await this.config.signer.signTransaction({
+          to: tx.targetContract,
+          data: tx.calldata,
+          value: tx.value,
+          gasLimit: tx.gasLimit,
+          maxFeePerGas: tx.maxFeePerGas,
+          maxPriorityFeePerGas: tx.maxPriorityFeePerGas,
+          nonce: idx,
+        });
+      }
+
+      bundleTxs.push({
+        signedTransaction,
+        transaction: tx,
+        canRevert: false,
+      });
+    }
+
+    const signerAddress = this.config.signer ? await this.config.signer.getAddress() : 'unsigned';
 
     const bundleRequest: PrivateRelayBundleRequest = {
       relayName: this.config.relayName,
@@ -106,9 +132,9 @@ export class PrivateRelayClient {
       maxTimestamp: Math.floor(Date.now() / 1000) + 120,
     };
 
-    // Deterministic bundle hash computation for tracking & auditing
     const bundlePayloadString = JSON.stringify({
       relay: bundleRequest.relayName,
+      signer: signerAddress,
       block: bundleRequest.targetBlockNumber,
       actions: emergencyTransactions.map((t) => `${t.targetContract}:${t.calldata}`),
     });

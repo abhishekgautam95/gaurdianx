@@ -9,7 +9,12 @@ import {
   BuiltInInvariants,
   GuardianXCLI,
   InvariantEngine,
+  KmsSignerAdapter,
+  LocalPrivateKeySigner,
+  MockAttackEngine,
+  MultisigSafeSignerAdapter,
   PrivateRelayClient,
+  ResilientRpcManager,
   RiskTier,
   SimulationRunner,
   TransactionAnalyzer,
@@ -45,7 +50,7 @@ describe('GuardianX Security & Active Defense Suite', () => {
         postState: {
           blockNumber: 101,
           timestamp: 1012,
-          balances: { [vaultAddr]: 150n * 10n ** 18n }, // 85% drained
+          balances: { [vaultAddr]: 150n * 10n ** 18n },
           tokenBalances: {},
           storageSlots: {},
           contractVerified: { [vaultAddr]: true },
@@ -144,11 +149,11 @@ describe('GuardianX Security & Active Defense Suite', () => {
 
   describe('Phase 3: AI Agent Runtime Guardrail Middleware', () => {
     const middleware = new AgentGuardrailMiddleware({
-      maxSlippageBps: 100, // 1.00%
-      maxGasBurnWei: 50000000000000000n, // 0.05 ETH
-      maxTransferValueWei: 10000000000000000000n, // 10 ETH
+      maxSlippageBps: 100,
+      maxGasBurnWei: 50000000000000000n,
+      maxTransferValueWei: 10000000000000000000n,
       allowedContractWhitelist: [
-        '0x7a250d5630b4cf539739df2c5dacb4c659f2488d', // Uniswap Router
+        '0x7a250d5630b4cf539739df2c5dacb4c659f2488d',
       ],
     });
 
@@ -162,10 +167,10 @@ describe('GuardianX Security & Active Defense Suite', () => {
           chain: 'ethereum',
           from: '0xAgentWallet',
           to: '0x7a250d5630b4cf539739df2c5dacb4c659f2488d',
-          value: 1000000000000000000n, // 1 ETH
+          value: 1000000000000000000n,
           data: '0x7ff36ab500000000000000000000000000000000000000000000000000000000',
           gasLimit: 150000n,
-          maxFeePerGas: 30000000000n, // 30 gwei
+          maxFeePerGas: 30000000000n,
         },
       });
 
@@ -200,15 +205,15 @@ describe('GuardianX Security & Active Defense Suite', () => {
         agentId: 'rogue-agent-02',
         naturalLanguageObjective: 'Swap 50 ETH for tokens',
         toolName: 'swap',
-        estimatedSlippageBps: 450, // 4.5% > 1% cap
+        estimatedSlippageBps: 450,
         tx: {
           chain: 'ethereum',
           from: '0xAgentWallet',
-          to: '0xdeadbeef00000000000000000000000000000000', // Not whitelisted
-          value: 50000000000000000000n, // 50 ETH > 10 ETH cap
+          to: '0xdeadbeef00000000000000000000000000000000',
+          value: 50000000000000000000n,
           data: '0x7ff36ab5',
           gasLimit: 2000000n,
-          maxFeePerGas: 100000000000n, // 0.2 ETH gas burn > 0.05 ETH cap
+          maxFeePerGas: 100000000000n,
         },
       });
 
@@ -253,6 +258,175 @@ describe('GuardianX Security & Active Defense Suite', () => {
       assert.ok(listenRes.stdout.includes('GuardianX Mempool & State Invariant Listener Active'));
 
       fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+  });
+
+  describe('Milestone 1: Production Signer & Key Management Abstraction (Local, KMS, Safe Multisig)', () => {
+    it('signs transactions and EIP-712 payloads with LocalPrivateKeySigner without exposing private key', async () => {
+      const signer = new LocalPrivateKeySigner(
+        '0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'
+      );
+      const address = await signer.getAddress();
+      assert.match(address, /^0x[0-9a-f]{40}$/);
+
+      const signedTx = await signer.signTransaction({
+        to: '0x1111111111111111111111111111111111111111',
+        data: '0x8456cb59',
+        value: 0n,
+      });
+      assert.ok(signedTx.startsWith('0x02f8'));
+    });
+
+    it('enforces strict KMS environment security checks and signs via KmsSignerAdapter', async () => {
+      assert.throws(() => {
+        new KmsSignerAdapter({
+          provider: 'aws-kms',
+          keyId: '0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+          region: 'us-east-1',
+        });
+      }, /Security Violation: Raw 32-byte hex private key passed as KMS keyId/);
+
+      assert.throws(() => {
+        new KmsSignerAdapter({
+          provider: 'aws-kms',
+          keyId: 'arn:aws:kms:us-east-1:123456789012:key/guardianx-vault-key',
+          region: 'us-east-1',
+          env: { RAW_PRIVATE_KEY: '0xdeadbeef' },
+        });
+      }, /Security Violation: RAW_PRIVATE_KEY detected/);
+
+      const kmsSigner = new KmsSignerAdapter({
+        provider: 'aws-kms',
+        keyId: 'arn:aws:kms:us-east-1:123456789012:key/guardianx-vault-key',
+        region: 'us-east-1',
+        env: {},
+      });
+
+      const kmsAddr = await kmsSigner.getAddress();
+      assert.match(kmsAddr, /^0x[0-9a-f]{40}$/);
+
+      const kmsSig = await kmsSigner.signTransaction({
+        to: '0x1111111111111111111111111111111111111111',
+        data: '0x8456cb59',
+      });
+      assert.ok(kmsSig.startsWith('0x02f9'));
+    });
+
+    it('generates EIP-712 Safe multisig proposals when ActiveMitigationEngine uses MultisigSafeSignerAdapter', async () => {
+      const kmsProposer = new KmsSignerAdapter({
+        provider: 'gcp-kms',
+        keyId: 'projects/guardianx/locations/global/keyRings/prod/cryptoKeys/proposer',
+        region: 'global',
+        env: {},
+      });
+
+      const safeSigner = new MultisigSafeSignerAdapter({
+        safeAddress: '0x9999999999999999999999999999999999999999',
+        chainId: 1,
+        proposerSigner: kmsProposer,
+      });
+
+      const relay = new PrivateRelayClient({
+        relayName: 'flashbots',
+        relayUrl: 'https://relay.flashbots.net',
+        signer: safeSigner,
+      });
+
+      const breaker = new ActiveMitigationEngine(relay, defaultGuardianXConfig.circuitBreaker);
+      const receipt = await breaker.executeMitigation(
+        RiskTier.LEVEL_3_CIRCUIT_BREAKER,
+        '0x1111111111111111111111111111111111111111',
+        20500005
+      );
+
+      assert.equal(receipt.triggered, true);
+      const proposals = safeSigner.getProposals();
+      assert.equal(proposals.length, 3); // pause, freezeVault, sweepToSafe
+      assert.equal(proposals[0].safeAddress, '0x9999999999999999999999999999999999999999');
+      assert.ok(proposals[0].eip712Signature.startsWith('0x'));
+    });
+  });
+
+  describe('Milestone 2: Resilient Multi-RPC Fallback Client & Mempool Stream', () => {
+    it('automatically fails over to healthy secondary RPC with exponential backoff when primary fails', async () => {
+      const rpcManager = new ResilientRpcManager([
+        {
+          name: 'Primary-Offline-RPC',
+          httpUrl: 'https://offline-primary.example.com',
+          priority: 1,
+          maxRetries: 2,
+          timeoutMs: 100,
+        },
+        {
+          name: 'Secondary-Alchemy-RPC',
+          httpUrl: 'https://eth-mainnet.g.alchemy.com/v2/healthy',
+          priority: 2,
+          maxRetries: 2,
+          timeoutMs: 500,
+        },
+      ]);
+
+      const response = await rpcManager.call<string>('eth_blockNumber');
+      assert.equal(response.providerUsed, 'Secondary-Alchemy-RPC');
+      assert.equal(response.result, '0x138ce80');
+      assert.equal(response.attempts, 3); // 2 failed retries on Primary + 1st success on Secondary
+
+      const metrics = rpcManager.getHealthMetrics();
+      assert.equal(metrics[0].name, 'Secondary-Alchemy-RPC');
+      assert.equal(metrics[0].healthy, true);
+      assert.equal(metrics[1].name, 'Primary-Offline-RPC');
+      assert.equal(metrics[1].healthy, false);
+    });
+
+    it('buffers mempool events under backpressure and flushes upon WebSocket auto-reconnect', async () => {
+      const rpcManager = new ResilientRpcManager(
+        [
+          {
+            name: 'Anvil-Local',
+            httpUrl: 'http://127.0.0.1:8545',
+            wsUrl: 'ws://127.0.0.1:8545',
+            priority: 1,
+          },
+        ],
+        { maxBufferSize: 3 }
+      );
+
+      const receivedEvents: string[] = [];
+      rpcManager.subscribeMempoolStream((ev) => {
+        receivedEvents.push(ev.pendingTxHash ?? ev.type);
+      });
+
+      // Simulate 4 buffered events while stream delivery is deferred (testing ring buffer cap of 3)
+      rpcManager.ingestStreamEvent({ type: 'pendingTransactions', pendingTxHash: '0xtx1', receivedAt: 1 }, false);
+      rpcManager.ingestStreamEvent({ type: 'pendingTransactions', pendingTxHash: '0xtx2', receivedAt: 2 }, false);
+      rpcManager.ingestStreamEvent({ type: 'pendingTransactions', pendingTxHash: '0xtx3', receivedAt: 3 }, false);
+      rpcManager.ingestStreamEvent({ type: 'pendingTransactions', pendingTxHash: '0xtx4', receivedAt: 4 }, false);
+
+      const diagBefore = rpcManager.getStreamDiagnostics();
+      assert.equal(diagBefore.bufferedCount, 3);
+      assert.equal(diagBefore.droppedEventsCount, 1);
+
+      const reconnectResult = await rpcManager.handleConnectionDropAndReconnect();
+      assert.equal(reconnectResult.reconnected, true);
+      assert.equal(reconnectResult.flushedEvents, 3);
+      assert.deepEqual(receivedEvents, ['0xtx2', '0xtx3', '0xtx4']);
+    });
+  });
+
+  describe('Milestone 3: Historical MockAttackEngine Replay Suite', () => {
+    it('replays Euler Flash Loan, Curve Read-Only Reentrancy, and Proxy Hijack offline with full PoE and circuit breaker verification', async () => {
+      const attackEngine = new MockAttackEngine();
+      const scenarios = attackEngine.listScenarios();
+      assert.equal(scenarios.length, 3);
+
+      for (const scenario of scenarios) {
+        const replay = await attackEngine.replayScenario(scenario.id);
+        assert.equal(replay.analysis.verdict, 'Critical Threat');
+        assert.equal(replay.analysis.riskTier, RiskTier.LEVEL_3_CIRCUIT_BREAKER);
+        assert.equal(replay.analysis.proofOfExploit?.exploitConfirmed, true);
+        assert.equal(replay.analysis.mitigationReceipt?.triggered, true);
+        assert.ok(replay.rescuedValueWei > 0n);
+      }
     });
   });
 });

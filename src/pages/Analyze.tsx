@@ -1,10 +1,13 @@
 import { FormEvent, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Upload, Zap, AlertTriangle } from 'lucide-react';
+import { Search, Upload, Zap, AlertTriangle, Play, ShieldAlert } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { TransactionAnalyzer } from '../core/transactionAnalyzer';
+import { MockAttackEngine } from '../core/mockAttackEngine';
 import { defaultGuardianXConfig } from '../core/config';
-import { SupportedChain } from '../types';
+import { AttackScenarioId, SupportedChain } from '../types';
+
+const attackEngine = new MockAttackEngine();
 
 const Analyze = () => {
   const [formData, setFormData] = useState<{
@@ -18,7 +21,48 @@ const Analyze = () => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [inputMethod, setInputMethod] = useState<'hash' | 'data'>('hash');
+  const [liveSimMode, setLiveSimMode] = useState<boolean>(true);
+  const [selectedScenarioId, setSelectedScenarioId] = useState<AttackScenarioId>('euler-flashloan-2023');
   const navigate = useNavigate();
+
+  const scenarios = attackEngine.listScenarios();
+
+  const handleOneClickHistoricalReplay = async (scenarioId: AttackScenarioId) => {
+    setIsLoading(true);
+    try {
+      const replay = await attackEngine.replayScenario(scenarioId);
+      const { analysis, scenario } = replay;
+
+      const serializedResult = {
+        riskScore: analysis.riskScore,
+        verdict: analysis.verdict,
+        riskTier: analysis.riskTier,
+        explanation: analysis.explanation,
+        flags: analysis.flags.map((f) => f.message),
+        chain: analysis.chain,
+        txHash: analysis.txHash,
+        foundryPoE: analysis.proofOfExploit?.reproducibleFoundryTestSolidity,
+        mitigationBundleHash: analysis.mitigationReceipt?.bundleResponse?.bundleHash,
+        mitigationActions: analysis.mitigationReceipt?.actionsTaken,
+        historicalReplay: {
+          title: scenario.title,
+          protocol: scenario.protocol,
+          date: scenario.date,
+          historicalLossUsd: scenario.historicalLossUsd,
+          attackCategory: scenario.attackCategory,
+          summary: scenario.summary,
+          preVaultBalanceEth: replay.preVaultBalanceEth,
+          postVaultBalanceWithoutGuardianEth: replay.postVaultBalanceWithoutGuardianEth,
+          postVaultBalanceWithGuardianEth: replay.postVaultBalanceWithGuardianEth,
+        },
+      };
+
+      localStorage.setItem('analysisResult', JSON.stringify(serializedResult));
+      navigate('/result');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -84,14 +128,93 @@ const Analyze = () => {
           initial={{ y: 50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.8 }}
-          className="text-center mb-12"
+          className="text-center mb-10"
         >
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
             Simulate &amp; Analyze Transaction
           </h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
             Execute candidate payloads in a local fork with invariant verification, AI intent guardrails, and Private Relay circuit breaking
           </p>
+        </motion.div>
+
+        {/* One-Click Live Simulation Sandbox Toggle */}
+        <motion.div
+          initial={{ y: 30, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.6, delay: 0.1 }}
+          className="bg-gradient-to-r from-slate-900 via-indigo-950 to-purple-950 text-white rounded-2xl shadow-xl p-6 mb-8"
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/15 pb-4 mb-5">
+            <div className="flex items-center space-x-3">
+              <ShieldAlert className="h-7 w-7 text-amber-400 flex-shrink-0" />
+              <div>
+                <h2 className="text-xl font-bold">
+                  One-Click Live Simulation Sandbox (Historical Attack Engine)
+                </h2>
+                <p className="text-sm text-indigo-200">
+                  Self-contained offline replay of historic DeFi exploits — zero external RPC keys required
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setLiveSimMode(!liveSimMode)}
+              className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-colors ${
+                liveSimMode
+                  ? 'bg-emerald-500 text-slate-950'
+                  : 'bg-white/10 text-gray-300 hover:bg-white/20'
+              }`}
+            >
+              {liveSimMode ? 'Sandbox Active' : 'Enable Sandbox'}
+            </button>
+          </div>
+
+          {liveSimMode && (
+            <div className="space-y-4">
+              <div className="grid md:grid-cols-3 gap-4">
+                {scenarios.map((sc) => {
+                  const isSelected = sc.id === selectedScenarioId;
+                  return (
+                    <button
+                      key={sc.id}
+                      type="button"
+                      onClick={() => setSelectedScenarioId(sc.id)}
+                      className={`text-left p-4 rounded-xl border transition-all ${
+                        isSelected
+                          ? 'border-amber-400 bg-white/15 shadow-lg'
+                          : 'border-white/10 bg-white/5 hover:bg-white/10'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between text-xs text-amber-300 font-semibold mb-1">
+                        <span>{sc.attackCategory}</span>
+                        <span>{sc.historicalLossUsd}</span>
+                      </div>
+                      <div className="font-bold text-sm text-white mb-1">{sc.title}</div>
+                      <div className="text-xs text-indigo-200 line-clamp-2">{sc.summary}</div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
+                <div className="text-xs text-indigo-200 font-mono">
+                  Pipeline: Invariant Breach → Foundry (.t.sol) PoE → Flashbots Front-Run Rescue Bundle
+                </div>
+                <motion.button
+                  type="button"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  disabled={isLoading}
+                  onClick={() => handleOneClickHistoricalReplay(selectedScenarioId)}
+                  className="bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold px-6 py-3 rounded-xl flex items-center justify-center space-x-2 shadow-lg"
+                >
+                  <Play className="h-4 w-4 fill-current" />
+                  <span>Replay Selected Attack &amp; Trigger Circuit Breaker</span>
+                </motion.button>
+              </div>
+            </div>
+          )}
         </motion.div>
 
         <motion.div
@@ -129,7 +252,7 @@ const Analyze = () => {
             {/* Input Method Selection */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-3">
-                Input Method
+                Custom Input Method
               </label>
               <div className="flex space-x-4">
                 <motion.button
@@ -226,56 +349,6 @@ const Analyze = () => {
               )}
             </motion.button>
           </form>
-        </motion.div>
-
-        {/* Interactive Presets */}
-        <motion.div
-          initial={{ y: 50, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.8, delay: 0.4 }}
-          className="mt-12"
-        >
-          <h3 className="text-2xl font-bold text-gray-900 mb-6 text-center">
-            One-Click Simulation Presets
-          </h3>
-          <div className="grid md:grid-cols-2 gap-6">
-            <button
-              type="button"
-              onClick={() => {
-                setInputMethod('hash');
-                setFormData({
-                  chain: 'ethereum',
-                  txHash: '0x3b8f9a1c2d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f01',
-                  txData: '',
-                });
-              }}
-              className="bg-white rounded-xl p-6 shadow-lg text-left hover:border-blue-500 border-2 border-transparent transition-all"
-            >
-              <h4 className="font-semibold text-gray-900 mb-2">Safe ERC-20 Transfer</h4>
-              <p className="text-sm text-gray-600 mb-3">Passes all vault balance invariants (Tier 1)</p>
-              <code className="text-xs bg-gray-100 p-2 rounded block break-all">
-                0x3b8f9a1c2d4e...7d8e9f01
-              </code>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setInputMethod('data');
-                setFormData({
-                  chain: 'ethereum',
-                  txHash: '0xdeadbeef_flashloan_exploit_tx',
-                  txData: '0x853828b6deadbeef000000000000000000000000000000000000000000000000',
-                });
-              }}
-              className="bg-white rounded-xl p-6 shadow-lg text-left hover:border-red-500 border-2 border-transparent transition-all"
-            >
-              <h4 className="font-semibold text-red-700 mb-2">Flash-Loan Vault Drain Exploit</h4>
-              <p className="text-sm text-gray-600 mb-3">Triggers Foundry PoE &amp; Tier-3 Flashbots Circuit Breaker</p>
-              <code className="text-xs bg-red-50 text-red-800 p-2 rounded block break-all">
-                0x853828b6deadbeef...
-              </code>
-            </button>
-          </div>
         </motion.div>
       </div>
     </div>

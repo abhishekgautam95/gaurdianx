@@ -9,6 +9,13 @@ export { SimulationRunner } from './core/simulationRunner.js';
 export { ActiveMitigationEngine } from './core/circuitBreaker.js';
 export { TransactionAnalyzer } from './core/transactionAnalyzer.js';
 export { defineGuardianXConfig, defaultGuardianXConfig } from './core/config.js';
+export { MockAttackEngine, HISTORICAL_ATTACK_SCENARIOS } from './core/mockAttackEngine.js';
 export { AgentGuardrailMiddleware } from './agents/guardrailMiddleware.js';
 export { PrivateRelayClient, EMERGENCY_SELECTORS } from './relays/privateRelay.js';
+export {
+  LocalPrivateKeySigner,
+  KmsSignerAdapter,
+  MultisigSafeSignerAdapter,
+} from './signers/index.js';
+export { ResilientRpcManager } from './providers/resilientRpcManager.js';
 export { GuardianXCLI } from './cli/index.js';

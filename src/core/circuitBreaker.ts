@@ -3,33 +3,38 @@ import {
   EmergencyCallbackContext,
   EmergencyTransaction,
   GuardianXConfig,
+  IKeySigner,
   MitigationExecutionReceipt,
   RiskTier,
 } from '../types/index.js';
 import { PrivateRelayClient } from '../relays/privateRelay.js';
 
 /**
- * Phase 2: Autonomous Circuit Breaker & Active Mitigation Engine.
+ * Phase 2 & Milestone 1: Autonomous Circuit Breaker & Active Mitigation Engine.
  *
- * Moves beyond passive alerting (webhooks) by enforcing 3 configurable risk tiers:
- * - Level 1 (`RiskTier.LEVEL_1_SOFT_ALERT`): Structured telemetry log & soft alert callback.
- * - Level 2 (`RiskTier.LEVEL_2_THROTTLE`): Dynamic parameter throttling (withdrawal cap & rate limit reduction).
- * - Level 3 (`RiskTier.LEVEL_3_CIRCUIT_BREAKER`): Immediate automated contract `pause()`, `freezeVault()`,
- *   and `sweepToSafe()` bundled via Flashbots / Private Relayers to front-run exploit payloads.
+ * Consumes `IKeySigner` (via `PrivateRelayClient` or direct injection) to sign emergency payloads
+ * or create EIP-712 Safe multisig proposals without ever handling raw private keys in memory.
  */
 export class ActiveMitigationEngine {
   private readonly relayClient: PrivateRelayClient;
   private readonly config: GuardianXConfig['circuitBreaker'];
   private readonly callbacks?: GuardianXConfig['callbacks'];
+  private readonly signer?: IKeySigner;
 
   constructor(
     relayClient: PrivateRelayClient,
     config: GuardianXConfig['circuitBreaker'],
-    callbacks?: GuardianXConfig['callbacks']
+    callbacks?: GuardianXConfig['callbacks'],
+    signer?: IKeySigner
   ) {
     this.relayClient = relayClient;
     this.config = config;
     this.callbacks = callbacks;
+    this.signer = signer ?? relayClient.getSigner();
+  }
+
+  public getSigner(): IKeySigner | undefined {
+    return this.signer;
   }
 
   /**
@@ -55,6 +60,11 @@ export class ActiveMitigationEngine {
       };
     }
 
+    if (this.signer) {
+      const signerAddr = await this.signer.getAddress();
+      logs.push(`[Signer:${this.signer.signerType}] Authenticated mitigation authority ${signerAddr}.`);
+    }
+
     // Tier 1: Log & Soft Alert
     if (tier === RiskTier.LEVEL_1_SOFT_ALERT) {
       logs.push(`[Tier 1: Soft Alert] Anomaly recorded for contract ${targetContract} at block ${targetBlockNumber}.`);
@@ -78,6 +88,17 @@ export class ActiveMitigationEngine {
         priorityFeeGwei: this.config.maxPriorityFeeGwei,
       });
 
+      if (this.signer && !this.relayClient.getSigner()) {
+        await this.signer.signTransaction({
+          to: throttleTx.targetContract,
+          data: throttleTx.calldata,
+          value: throttleTx.value,
+          gasLimit: throttleTx.gasLimit,
+          maxFeePerGas: throttleTx.maxFeePerGas,
+          maxPriorityFeePerGas: throttleTx.maxPriorityFeePerGas,
+        });
+      }
+
       const bundleResponse = await this.relayClient.submitFrontrunRescueBundle({
         targetBlockNumber,
         emergencyTransactions: [throttleTx],
@@ -85,7 +106,7 @@ export class ActiveMitigationEngine {
       });
 
       const throttledParams = {
-        maxWithdrawalBps: 1000, // 10% cap
+        maxWithdrawalBps: 1000,
         cooldownSeconds: 3600,
         bundleHash: bundleResponse.bundleHash,
       };
@@ -139,6 +160,19 @@ export class ActiveMitigationEngine {
         })
       );
       actionsTaken.push('sweepToSafe');
+    }
+
+    if (this.signer && !this.relayClient.getSigner()) {
+      for (const tx of emergencyTxs) {
+        await this.signer.signTransaction({
+          to: tx.targetContract,
+          data: tx.calldata,
+          value: tx.value,
+          gasLimit: tx.gasLimit,
+          maxFeePerGas: tx.maxFeePerGas,
+          maxPriorityFeePerGas: tx.maxPriorityFeePerGas,
+        });
+      }
     }
 
     const bundleResponse = await this.relayClient.submitFrontrunRescueBundle({
