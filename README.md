@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🛡️ GuardianX v2.0
+# 🛡️ GuardianX v2.1
 
 ### **Autonomous Web3 Circuit Breaker, Proof-of-Exploit (PoE) Fork Simulator & AI Agent Runtime Firewall**
 
@@ -12,6 +12,27 @@
 *Stop getting paged after your vault is already drained. Simulate in local forks, prove exploits deterministically, intercept rogue AI agent tool calls, and front-run attackers via private MEV relays.*
 
 </div>
+
+```typescript
+import { createGuardianWallet } from '@guardianx/sdk';
+import { createWalletClient, http } from 'viem';
+import { mainnet } from 'viem/chains';
+
+const baseClient = createWalletClient({ chain: mainnet, transport: http() });
+
+// Wrap any agent wallet in one line
+const guardianWallet = createGuardianWallet({
+  client: baseClient,
+  policy: {
+    maxSlippageBps: 100,
+    maxDailySpendWei: parseEther('1.0'),
+    allowedContracts: ['0xUniswapRouter...'],
+  },
+});
+
+// Automatically simulated & validated before signing
+await guardianWallet.sendTransaction({ to: '0x...', value: parseEther('0.1') });
+```
 
 ---
 

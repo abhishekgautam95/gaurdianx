@@ -1,5 +1,6 @@
 import {
   CreateGuardianWalletOptions,
+  CreateGuardianWalletPolicyInput,
   GuardianProtectedExecutionResult,
   GuardianWalletClient,
   TransactionAnalysisResult,
@@ -55,9 +56,45 @@ export class GuardianFirewallBlockedError extends Error {
  * 2. Local Ephemeral Fork Simulation & Invariant checks via `TransactionAnalyzer` before broadcasting.
  */
 export function createGuardianWallet<TClient extends ViemOrEthersWalletClient>(
+  config: CreateGuardianWalletPolicyInput<TClient>
+): GuardianWalletClient<TClient>;
+export function createGuardianWallet<TClient extends ViemOrEthersWalletClient>(
   walletClient: TClient,
   options: CreateGuardianWalletOptions
+): GuardianWalletClient<TClient>;
+export function createGuardianWallet<TClient extends ViemOrEthersWalletClient>(
+  clientOrConfig: TClient | CreateGuardianWalletPolicyInput<TClient>,
+  maybeOptions?: CreateGuardianWalletOptions
 ): GuardianWalletClient<TClient> {
+  const isPolicyInput = (
+    input: TClient | CreateGuardianWalletPolicyInput<TClient>
+  ): input is CreateGuardianWalletPolicyInput<TClient> => {
+    return typeof input === 'object' && input !== null && 'client' in input && 'policy' in input;
+  };
+
+  const walletClient: TClient = isPolicyInput(clientOrConfig)
+    ? clientOrConfig.client
+    : clientOrConfig;
+
+  const options: CreateGuardianWalletOptions = isPolicyInput(clientOrConfig)
+    ? {
+        agentId: clientOrConfig.agentId ?? 'guardianx-agent',
+        chain: clientOrConfig.chain,
+        chainId: clientOrConfig.chainId,
+        rpcUrl: clientOrConfig.rpcUrl,
+        hardCaps: {
+          maxSlippageBps: clientOrConfig.policy.maxSlippageBps,
+          maxGasBurnWei: clientOrConfig.policy.maxGasBurnWei ?? 50000000000000000n,
+          maxTransferValueWei: clientOrConfig.policy.maxDailySpendWei ?? 1000000000000000000n,
+          allowedContractWhitelist: clientOrConfig.policy.allowedContracts,
+          blockedSelectors: clientOrConfig.policy.blockedSelectors,
+        },
+        invariants: clientOrConfig.invariants,
+        defaultIntentObjective: clientOrConfig.defaultIntentObjective,
+        runLocalSimulation: clientOrConfig.runLocalSimulation,
+        maxAllowedRiskScore: clientOrConfig.maxAllowedRiskScore,
+      }
+    : maybeOptions!;
   const middleware = new AgentGuardrailMiddleware(options.hardCaps);
   const runLocalSimulation = options.runLocalSimulation ?? true;
   const maxAllowedRiskScore = options.maxAllowedRiskScore ?? 70;

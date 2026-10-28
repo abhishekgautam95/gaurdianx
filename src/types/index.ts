@@ -426,6 +426,25 @@ export interface ViemOrEthersWalletClient {
   writeContract?: (args: WalletWriteContractParameters) => Promise<string>;
 }
 
+export interface CreateGuardianWalletPolicyInput<TClient extends ViemOrEthersWalletClient = ViemOrEthersWalletClient> {
+  client: TClient;
+  agentId?: string;
+  chain?: SupportedChain;
+  chainId?: number;
+  rpcUrl?: string;
+  policy: {
+    maxSlippageBps: number;
+    maxDailySpendWei?: bigint;
+    maxGasBurnWei?: bigint;
+    allowedContracts: string[];
+    blockedSelectors?: string[];
+  };
+  invariants?: InvariantRule[];
+  defaultIntentObjective?: string;
+  runLocalSimulation?: boolean;
+  maxAllowedRiskScore?: number;
+}
+
 export interface CreateGuardianWalletOptions {
   agentId: string;
   chain?: SupportedChain;
