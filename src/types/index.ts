@@ -517,3 +517,42 @@ export interface MultiBuilderBroadcastReceipt {
   builderResponses: PrivateRelayBundleResponse[];
   timestamp: string;
 }
+
+/**
+ * Step 3: Multi-Channel Incident Notifier Types (Discord, Slack, Telegram, PagerDuty)
+ */
+export type AlertChannelType = 'discord' | 'slack' | 'telegram' | 'pagerduty';
+
+export interface IncidentChannelConfig {
+  channel: AlertChannelType;
+  webhookUrl: string;
+  routingKey?: string;
+  chatId?: string;
+}
+
+export interface IncidentDispatchReceipt {
+  channel: AlertChannelType;
+  delivered: boolean;
+  statusCode: number;
+  formattedTitle: string;
+  includedFoundryPoE: boolean;
+  timestamp: string;
+}
+
+/**
+ * Step 4: AI Agent Framework Tool Adapters (LangChain / Coinbase AgentKit / ElizaOS)
+ */
+export interface GenericAgentFrameworkTool<TInput extends Record<string, unknown> = Record<string, unknown>, TOutput = unknown> {
+  name: string;
+  description: string;
+  invoke: (input: TInput) => Promise<TOutput>;
+}
+
+export interface AgentToolExecutionInput {
+  to: string;
+  data?: string;
+  value?: bigint;
+  intentObjective?: string;
+  estimatedSlippageBps?: number;
+  [key: string]: unknown;
+}

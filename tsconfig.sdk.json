@@ -20,6 +20,7 @@
     "src/types/**/*.ts",
     "src/core/**/*.ts",
     "src/agents/**/*.ts",
+    "src/alerts/**/*.ts",
     "src/relays/**/*.ts",
     "src/signers/**/*.ts",
     "src/providers/**/*.ts",

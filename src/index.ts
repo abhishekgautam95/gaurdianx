@@ -16,6 +16,8 @@ export {
   createGuardianWallet,
   GuardianFirewallBlockedError,
 } from './agents/createGuardianWallet.js';
+export { withGuardianToolGuardrails } from './agents/frameworkAdapters.js';
+export { IncidentNotifier } from './alerts/incidentNotifier.js';
 export { PrivateRelayClient, EMERGENCY_SELECTORS } from './relays/privateRelay.js';
 export {
   MultiBuilderBroadcaster,
