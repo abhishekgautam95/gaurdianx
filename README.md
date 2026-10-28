@@ -4,6 +4,7 @@
 
 ### **Autonomous Web3 Circuit Breaker, Proof-of-Exploit (PoE) Fork Simulator & AI Agent Runtime Firewall**
 
+[![Live Demo](https://img.shields.io/badge/Live_Demo-gaurdianx.vercel.app-000000?logo=vercel&logoColor=white)](https://gaurdianx.vercel.app)
 [![Release](https://img.shields.io/badge/Release-v2.1.0-3B82F6?logo=github)](https://github.com/abhishekgautam95/gaurdianx/releases/tag/v2.1.0)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5%2B_Strict-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Solidity](https://img.shields.io/badge/Solidity-0.8.20%2B_Safe_Zodiac-363636?logo=solidity)](./contracts/GuardianXSafeModule.sol)
