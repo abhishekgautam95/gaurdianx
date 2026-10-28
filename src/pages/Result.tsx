@@ -1,15 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Shield, AlertTriangle, XCircle, CheckCircle, Info } from 'lucide-react';
+import { ArrowLeft, Shield, AlertTriangle, XCircle, CheckCircle, Info, Terminal } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface AnalysisResult {
   riskScore: number;
   verdict: string;
+  riskTier?: number;
   explanation: string;
   flags: string[];
   chain: string;
   txHash: string;
+  foundryPoE?: string;
+  mitigationBundleHash?: string;
+  mitigationActions?: string[];
 }
 
 const Result = () => {
@@ -50,12 +54,12 @@ const Result = () => {
   const getRiskVerdict = (score: number) => {
     if (score < 30) return 'Safe';
     if (score < 70) return 'Medium Risk';
-    return 'High Risk';
+    return 'Critical Threat (Tier-3 Active Mitigation)';
   };
 
   const riskColor = getRiskColor(result.riskScore);
   const riskIcon = getRiskIcon(result.riskScore);
-  const verdict = getRiskVerdict(result.riskScore);
+  const verdict = result.verdict || getRiskVerdict(result.riskScore);
 
   return (
     <div className="min-h-screen py-20">
@@ -72,7 +76,7 @@ const Result = () => {
             Back to Analyze
           </Link>
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            Transaction Analysis Result
+            Transaction Security &amp; PoE Report
           </h1>
           <p className="text-gray-600">
             Chain: <span className="font-medium capitalize">{result.chain}</span>
@@ -96,7 +100,9 @@ const Result = () => {
               {riskIcon}
             </div>
             <h2 className="text-3xl font-bold text-gray-900 mb-2">{verdict}</h2>
-            <p className="text-gray-600">Risk Score: {result.riskScore}/100</p>
+            <p className="text-gray-600">
+              Risk Score: {result.riskScore}/100 {result.riskTier ? `• Tier ${result.riskTier}` : ''}
+            </p>
           </div>
 
           {/* Progress Bar */}
@@ -114,9 +120,9 @@ const Result = () => {
               ></motion.div>
             </div>
             <div className="flex justify-between text-sm text-gray-500">
-              <span>Safe</span>
-              <span>Medium Risk</span>
-              <span>High Risk</span>
+              <span>Tier 1: Safe / Log</span>
+              <span>Tier 2: Throttle</span>
+              <span>Tier 3: Circuit Breaker</span>
             </div>
           </div>
         </motion.div>
@@ -130,12 +136,45 @@ const Result = () => {
         >
           <div className="flex items-center mb-4">
             <Info className="h-6 w-6 text-blue-600 mr-2" />
-            <h3 className="text-2xl font-bold text-gray-900">Analysis Explanation</h3>
+            <h3 className="text-2xl font-bold text-gray-900">Simulation &amp; Invariant Analysis</h3>
           </div>
           <p className="text-gray-700 leading-relaxed">
             {result.explanation}
           </p>
+          {result.mitigationBundleHash && (
+            <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl">
+              <p className="text-sm font-semibold text-red-900">
+                ⚡ Flashbots Front-Run Rescue Bundle Dispatched
+              </p>
+              <p className="text-xs text-red-800 mt-1 font-mono break-all">
+                Bundle Hash: {result.mitigationBundleHash}
+              </p>
+              {result.mitigationActions && (
+                <p className="text-xs text-red-800 mt-1">
+                  Executed Calls: <code>{result.mitigationActions.join('(), ')}()</code>
+                </p>
+              )}
+            </div>
+          )}
         </motion.div>
+
+        {/* Proof of Exploit Foundry Test Card */}
+        {result.foundryPoE && (
+          <motion.div
+            initial={{ y: 50, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.25 }}
+            className="bg-gray-900 text-gray-100 rounded-2xl shadow-xl p-8 mb-8"
+          >
+            <div className="flex items-center mb-4">
+              <Terminal className="h-6 w-6 text-green-400 mr-2" />
+              <h3 className="text-2xl font-bold text-white">Generated Foundry Proof-of-Exploit (.t.sol)</h3>
+            </div>
+            <pre className="text-xs font-mono overflow-x-auto bg-black/50 p-4 rounded-xl leading-relaxed">
+              {result.foundryPoE}
+            </pre>
+          </motion.div>
+        )}
 
         {/* Flags Card */}
         {result.flags && result.flags.length > 0 && (
@@ -147,7 +186,7 @@ const Result = () => {
           >
             <div className="flex items-center mb-4">
               <Shield className="h-6 w-6 text-purple-600 mr-2" />
-              <h3 className="text-2xl font-bold text-gray-900">Detection Flags</h3>
+              <h3 className="text-2xl font-bold text-gray-900">Detection &amp; Invariant Flags</h3>
             </div>
             <div className="space-y-3">
               {result.flags.map((flag, index) => (
@@ -166,41 +205,6 @@ const Result = () => {
           </motion.div>
         )}
 
-        {/* Recommendations Card */}
-        <motion.div
-          initial={{ y: 50, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.8, delay: 0.4 }}
-          className="bg-white rounded-2xl shadow-xl p-8 mb-8"
-        >
-          <h3 className="text-2xl font-bold text-gray-900 mb-4">Recommendations</h3>
-          <div className="space-y-3">
-            {result.riskScore < 30 ? (
-              <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                <p className="text-green-800">✓ This transaction appears safe to proceed with.</p>
-              </div>
-            ) : result.riskScore < 70 ? (
-              <>
-                <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                  <p className="text-yellow-800">⚠ Proceed with caution. Review the transaction details carefully.</p>
-                </div>
-                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <p className="text-blue-800">💡 Consider verifying the contract address and recipient.</p>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="p-4 bg-red-50 rounded-lg border border-red-200">
-                  <p className="text-red-800">🚨 High risk detected. Consider avoiding this transaction.</p>
-                </div>
-                <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
-                  <p className="text-orange-800">🔍 Investigate the contract and recipient thoroughly before proceeding.</p>
-                </div>
-              </>
-            )}
-          </div>
-        </motion.div>
-
         {/* Action Buttons */}
         <motion.div
           initial={{ y: 50, opacity: 0 }}
@@ -214,10 +218,10 @@ const Result = () => {
               whileTap={{ scale: 0.98 }}
               className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 px-6 rounded-lg font-semibold shadow-lg hover:shadow-xl transition-shadow duration-200"
             >
-              Analyze Another Transaction
+              Simulate Another Transaction
             </motion.button>
           </Link>
-          
+
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -227,7 +231,7 @@ const Result = () => {
             }}
             className="flex-1 border-2 border-gray-300 text-gray-700 py-4 px-6 rounded-lg font-semibold hover:border-blue-600 hover:text-blue-600 transition-colors duration-200"
           >
-            Copy Results
+            Copy Security Report
           </motion.button>
         </motion.div>
       </div>

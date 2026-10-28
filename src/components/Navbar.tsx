@@ -43,13 +43,15 @@ const Navbar = () => {
                 {item.name}
               </Link>
             ))}
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-full hover:shadow-lg transition-shadow duration-200"
-            >
-              Get Started
-            </motion.button>
+            <Link to="/analyze">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-full hover:shadow-lg transition-shadow duration-200"
+              >
+                Get Started
+              </motion.button>
+            </Link>
           </div>
 
           {/* Mobile menu button */}

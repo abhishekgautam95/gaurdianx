@@ -1,6 +1,5 @@
-import React from 'react';
 import { motion } from 'framer-motion';
-import { Shield, Zap, Eye, ArrowRight, CheckCircle } from 'lucide-react';
+import { Shield, Zap, Eye, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Home = () => {

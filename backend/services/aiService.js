@@ -14,7 +14,8 @@ class AIService {
     
     // Add some randomness and specific risk factors
     if (transactionData.isLargeTransfer) baseRiskScore += 10;
-    if (!transactionData.isVerified || !transactionData.isContractVerified) baseRiskScore += 20;
+    const isContractVerified = chain === 'solana' ? transactionData.isVerified : transactionData.isContractVerified;
+    if (!isContractVerified) baseRiskScore += 20;
     if (transactionData.holderCount < 1000) baseRiskScore += 15;
     if (transactionData.liquidityLevel === 'low') baseRiskScore += 25;
     if (transactionData.hasUnlimitedApproval) baseRiskScore += 30;

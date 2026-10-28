@@ -1,19 +1,33 @@
 {
-  "name": "vite-react-typescript-starter",
-  "private": true,
-  "version": "0.0.0",
+  "name": "guardianx",
+  "version": "2.0.0",
+  "description": "Autonomous Web3 Circuit Breaker, Local Fork Proof-of-Exploit Engine, and AI Agent Runtime Firewall",
   "type": "module",
+  "main": "./dist/sdk/index.js",
+  "module": "./dist/sdk/index.js",
+  "types": "./dist/sdk/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/sdk/index.d.ts",
+      "import": "./dist/sdk/index.js",
+      "default": "./dist/sdk/index.js"
+    }
+  },
+  "bin": {
+    "guardianx": "./dist/sdk/cli/index.js"
+  },
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build:sdk": "tsc -p tsconfig.sdk.json",
+    "build:ui": "vite build",
+    "build": "npm run build:sdk && npm run build:ui",
     "lint": "eslint .",
+    "typecheck": "tsc -b && tsc -p tsconfig.sdk.json --noEmit",
+    "test": "npm run build:sdk && node --experimental-strip-types --test tests/**/*.test.ts",
+    "guardianx": "npm run build:sdk && node dist/sdk/cli/index.js",
     "preview": "vite preview"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.57.4",
-    "@types/node": "^24.5.2",
-    "@types/react-router-dom": "^5.3.3",
-    "axios": "^1.12.2",
     "cors": "^2.8.5",
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
@@ -25,6 +39,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.9.1",
+    "@types/node": "^24.5.2",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",

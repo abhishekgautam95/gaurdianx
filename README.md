@@ -1,238 +1,258 @@
-# GuardianX - AI-Powered Wallet Guardian 🛡️
+<div align="center">
 
-GuardianX is an innovative hackathon project that provides AI-powered protection against scams, rug pulls, and phishing attacks on Solana and Avalanche blockchains. Before any transaction is signed, GuardianX analyzes it in real-time and provides a comprehensive risk assessment.
+# 🛡️ GuardianX v2.0
 
-![GuardianX Demo]
-<img width="1920" height="1080" alt="Screenshot from 2025-09-21 20-46-59" src="https://github.com/user-attachments/assets/b7e84d55-2f87-4645-9fec-358f753bceca" />
+### **Autonomous Web3 Circuit Breaker, Proof-of-Exploit (PoE) Fork Simulator & AI Agent Runtime Firewall**
 
-<img width="1920" height="1080" alt="Screenshot from 2025-09-21 20-47-07" src="https://github.com/user-attachments/assets/3e1d0f1f-44f9-4c6b-a14b-feb2a0d334fc" />
-<img width="1920" height="1080" alt="Screenshot from 2025-09-21 20-47-23" src="https://github.com/user-attachments/assets/19277bf0-9e70-4481-a4c5-657fd215cc19" />
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.5%2B-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-10B981.svg)](https://opensource.org/licenses/MIT)
+[![Private Relays](https://img.shields.io/badge/MEV_Protection-Flashbots_%7C_Eden-8B5CF6)](https://docs.flashbots.net/)
+[![Simulation](https://img.shields.io/badge/PoE_Engine-Foundry_Anvil-F59E0B)](https://book.getfoundry.sh/)
 
+*Stop getting paged after your vault is already drained. Simulate in local forks, prove exploits deterministically, intercept rogue AI agent tool calls, and front-run attackers via private MEV relays.*
 
-## 🚀 Features
-
-- **AI-Powered Risk Analysis**: Advanced machine learning algorithms analyze transaction patterns
-- **Multi-Chain Support**: Compatible with Solana and Avalanche blockchains  
-- **Real-Time Scanning**: Instant risk assessment with detailed explanations
-- **Smart Risk Scoring**: Color-coded risk levels (Safe/Medium/High) with explanations
-- **Comprehensive Detection**: Identifies rug pulls, phishing, unverified contracts, and more
-- **Modern UI**: Clean, responsive interface with smooth animations
-- **Developer-Friendly**: RESTful API for easy integration
-
-## 🛠️ Tech Stack
-
-### Frontend
-- **React 18** with TypeScript
-- **Tailwind CSS** for styling
-- **Framer Motion** for animations
-- **React Router** for navigation
-- **Lucide React** for icons
-
-### Backend
-- **Node.js** with Express
-- **CORS** for cross-origin requests
-- **Modular architecture** with services
-- **Mock AI integration** (DeepSeek ready)
-
-## 📦 Project Structure
-
-```
-guardianx/
-├── frontend/                 # React application
-│   ├── src/
-│   │   ├── components/      # Reusable components
-│   │   │   └── Navbar.tsx
-│   │   ├── pages/           # Main pages
-│   │   │   ├── Home.tsx
-│   │   │   ├── Analyze.tsx
-│   │   │   └── Result.tsx
-│   │   ├── App.tsx
-│   │   └── main.tsx
-├── backend/                 # Express API server
-│   ├── routes/
-│   │   └── analyze.js       # API routes
-│   ├── services/            # Business logic
-│   │   ├── analyzeService.js
-│   │   ├── solanaService.js
-│   │   ├── avalancheService.js
-│   │   └── aiService.js
-│   ├── utils/
-│   │   └── riskRules.js     # Risk detection logic
-│   └── server.js            # Main server file
-├── README.md
-└── .env.example            # Environment variables template
-```
-
-## 🚀 Quick Start
-
-### Prerequisites
-- Node.js 16+ installed
-- npm or yarn package manager
-
-### Frontend Setup
-
-1. **Install dependencies**:
-   ```bash
-   npm install
-   ```
-
-2. **Start the development server**:
-   ```bash
-   npm run dev
-   ```
-
-3. **Open your browser** to `http://localhost:5173`
-
-### Backend Setup
-
-1. **Navigate to backend directory**:
-   ```bash
-   cd backend
-   ```
-
-2. **Install backend dependencies**:
-   ```bash
-   npm install
-   ```
-
-3. **Create environment file**:
-   ```bash
-   cp ../.env.example .env
-   ```
-
-4. **Start the backend server**:
-   ```bash
-   npm start
-   ```
-
-5. **Backend will run** on `http://localhost:3001`
-
-## 🔧 API Usage
-
-### Analyze Transaction Endpoint
-
-**POST** `/api/analyze-tx`
-
-**Request Body**:
-```json
-{
-  "chain": "solana",
-  "txHash": "3Bxs4h6xjT8YP7K9mN2pQ7R...",
-  "txData": "optional_raw_transaction_data"
-}
-```
-
-**Response**:
-```json
-{
-  "riskScore": 45,
-  "verdict": "Medium Risk",
-  "explanation": "AI analysis detected potential risks...",
-  "flags": [
-    "Contract is not verified, limiting transparency",
-    "Limited number of token holders"
-  ],
-  "chain": "solana",
-  "txHash": "3Bxs4h6xjT8YP7K9mN2pQ7R...",
-  "timestamp": "2025-01-11T10:30:00.000Z"
-}
-```
-
-### Example cURL Request
-
-```bash
-curl -X POST http://localhost:3001/api/analyze-tx \
-  -H "Content-Type: application/json" \
-  -d '{
-    "chain": "solana",
-    "txHash": "example_transaction_hash_here"
-  }'
-```
-
-## 🔮 Production Integration
-
-To extend GuardianX with real APIs, update these components:
-
-### 1. Solana Integration (Helius API)
-```javascript
-// In services/solanaService.js
-async parseTransaction(txHash) {
-  const response = await fetch(`https://api.helius.xyz/v0/transactions/${txHash}?api-key=${process.env.HELIUS_API_KEY}`);
-  return response.json();
-}
-```
-
-### 2. Avalanche Integration (Snowtrace API)
-```javascript
-// In services/avalancheService.js  
-async parseTransaction(txHash) {
-  const response = await fetch(`https://api.snowtrace.io/api?module=proxy&action=eth_getTransactionByHash&txhash=${txHash}&apikey=${process.env.SNOWTRACE_API_KEY}`);
-  return response.json();
-}
-```
-
-### 3. AI Service (DeepSeek API)
-```javascript
-// In services/aiService.js
-async analyzeWithAI(data) {
-  const response = await fetch('https://api.deepseek.com/v1/analyze', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(data)
-  });
-  return response.json();
-}
-```
-
-## 🎯 Demo Features
-
-- **Interactive UI**: Beautiful, responsive design with smooth animations
-- **Mock Analysis**: Realistic transaction analysis without requiring API keys
-- **Multi-Chain**: Switch between Solana and Avalanche analysis
-- **Risk Visualization**: Color-coded progress bars and detailed explanations
-- **Mobile-Friendly**: Fully responsive design for all devices
-
-## 🛡️ Security Features
-
-- **Rug Pull Detection**: Analyzes holder distribution and liquidity patterns
-- **Phishing Protection**: Detects suspicious approval patterns and unknown contracts
-- **Smart Contract Analysis**: Verifies contract authenticity and security
-- **Real-Time Monitoring**: Continuous analysis of blockchain activity
-
-## 📱 Screenshots
-
-The application features a modern, clean interface with:
-- Landing page with hero section and feature highlights
-- Transaction analysis form with chain selection
-- Detailed results page with risk scores and recommendations
-- Mobile-responsive design with smooth animations
-
-## 🤝 Contributing
-
-This is a hackathon project! Feel free to:
-1. Fork the repository
-2. Create feature branches
-3. Submit pull requests
-4. Report issues and suggestions
-
-## 📄 License
-
-MIT License - feel free to use this project for learning and development.
-
-## 🌟 Future Enhancements
-
-- Real-time WebSocket notifications
-- User accounts and transaction history  
-- Machine learning model training
-- Additional blockchain support (Ethereum, Polygon, BSC)
-- Mobile app development
-- Advanced analytics dashboard
+</div>
 
 ---
 
-**Built with ❤️ for the hackathon community**
+## ⚡ Why GuardianX?
 
-*GuardianX - Your AI-powered guardian in the crypto world* 🛡️✨
+Legacy Web3 monitoring platforms (**OpenZeppelin Defender**, **Forta**, **Tenderly Alerts**) are fundamentally **passive**—they send Discord, PagerDuty, or Telegram webhooks *after* a suspicious transaction is spotted or mined, often resulting in severe **false-positive alert fatigue** or **public mempool front-running** when responders attempt manual `pause()` transactions.
+
+**GuardianX v2.0** is an active, deterministic defense engine engineered for DeFi protocols and autonomous AI agent treasuries:
+
+1. **Zero Alert Fatigue via Proof-of-Exploit (PoE)**: When an anomaly is detected, GuardianX forks the live chain state at the current block, executes the candidate payload, verifies whether state invariants break, and auto-generates a reproducible **Foundry (`.t.sol`)** exploit test before escalating.
+2. **MEV-Resistant Autonomous Circuit Breaker**: Instead of leaking emergency `pause()` transactions to the public mempool (where attackers can back-run or front-run them), GuardianX bundles `pause()`, `freezeVault()`, and `sweepToSafe()` directly through **Flashbots / Eden / MEV-Blocker private relays**.
+3. **AI Agent Runtime Guardrail Middleware**: An inline execution firewall that intercepts tool calls and unsigned transactions from LLM agents, performing **Semantic Intent Verification** (preventing prompt injection & rogue selector hijacks) alongside **Deterministic Hard Caps** (slippage, gas burn, transfer value, and contract whitelists).
+
+---
+
+## 🏗️ System Architecture
+
+```mermaid
+flowchart TD
+    subgraph Ingestion ["1. Ingestion & Agent Interception"]
+        MP["Live Mempool / Pending Tx"] --> TA["Transaction Analyzer"]
+        LLM["Autonomous AI Agent Tool Call"] --> AGM["AI Agent Guardrail Middleware"]
+        AGM -->|"Semantic Intent + Hard Caps"| TA
+    end
+
+    subgraph Verification ["2. Ephemeral Fork & Invariant Engine"]
+        TA --> SR["Simulation Runner (Anvil / Local Fork)"]
+        SR --> IE["Deterministic Invariant Engine"]
+        IE -->|"State Violated"| POE["Proof-of-Exploit (.t.sol) Generator"]
+    end
+
+    subgraph Mitigation ["3. Tiered Autonomous Circuit Breaker"]
+        POE --> CB{"Risk Tier Router"}
+        CB -->|"Tier 1: Low Risk"| T1["Structured Telemetry & Soft Alert"]
+        CB -->|"Tier 2: Elevated Risk"| T2["Dynamic Parameter Throttling"]
+        CB -->|"Tier 3: Confirmed Exploit"| T3["Emergency pause() + freezeVault() + sweepToSafe()"]
+        T3 --> PR["Private Relay Bundler (Flashbots / Eden)"]
+        PR -->|"Atomic Front-Run Bundle"| BLK["Target Block Inclusion"]
+    end
+```
+
+### Modular Codebase Layout
+
+```text
+guardianx/
+├── guardianx.config.ts              # Declarative TypeScript configuration & invariant hooks
+├── src/
+│   ├── index.ts                     # Clean ESM/TypeScript SDK exports
+│   ├── types/
+│   │   └── index.ts                 # Strict domain interfaces & configuration types
+│   ├── core/
+│   │   ├── invariantEngine.ts       # Deterministic state invariant evaluator & built-in rules
+│   │   ├── simulationRunner.ts      # Local fork execution & Foundry (.t.sol) PoE generator
+│   │   ├── circuitBreaker.ts        # Tier 1 / Tier 2 / Tier 3 Active Mitigation Engine
+│   │   ├── transactionAnalyzer.ts   # End-to-end orchestration pipeline
+│   │   └── config.ts                # defineGuardianXConfig() helper & defaults
+│   ├── agents/
+│   │   └── guardrailMiddleware.ts   # AI Agent Semantic Intent + Deterministic Hard Caps firewall
+│   ├── relays/
+│   │   └── privateRelay.ts          # Flashbots / Eden / MEV-Blocker atomic rescue bundler
+│   ├── cli/
+│   │   └── index.ts                 # CLI suite: `guardianx init`, `simulate`, `listen`
+│   └── pages/                       # Interactive React 18 + Tailwind Security Dashboard
+└── tests/
+    └── guardianx.test.ts            # End-to-end unit & integration test suite
+```
+
+---
+
+## 📊 Competitive Comparison
+
+| Capability | GuardianX v2.0 | OpenZeppelin Defender | Forta Network | Standard Wallet Simulators |
+| :--- | :---: | :---: | :---: | :---: |
+| **Detection Mechanism** | **Stateful Fork Invariants + PoE** | Event / Signature Matching | Heuristic Detection Bots | Pre-sign Balance Preview |
+| **False-Positive Elimination** | **Auto-generates Foundry `.t.sol` Proof** | ❌ Manual Triage Required | ❌ High Alert Fatigue | ❌ None |
+| **Active Exploit Mitigation** | **Tier-3 Auto `pause()` & `sweepToSafe()`** | Webhook / Relayer Script | Passive Alerting Only | ❌ None |
+| **Private Mempool Front-Running** | **Native Flashbots / Eden Bundles** | ⚠️ Public Mempool Default | ❌ None | ❌ None |
+| **AI Agent Runtime Firewall** | **Semantic Intent + Hard Caps** | ❌ None | ❌ None | ❌ None |
+| **Declarative TypeScript Config** | **`guardianx.config.ts` (Typed)** | JSON / Web UI | Docker / Bot Manifests | SaaS API Only |
+
+---
+
+## 🚀 Quickstart (Under 3 Minutes)
+
+### 1. Install & Build
+
+```bash
+git clone https://github.com/your-org/guardianx.git
+cd guardianx
+npm install
+npm run build
+```
+
+### 2. Initialize Declarative Config (`guardianx init`)
+
+Scaffold a strongly-typed `guardianx.config.ts` in your project:
+
+```bash
+npm run guardianx -- init
+```
+
+### 3. Run Local Fork Simulation & Generate Proof-of-Exploit (`guardianx simulate`)
+
+Test your vault invariants against a candidate exploit payload and inspect the auto-generated Foundry `.t.sol` harness and Flashbots rescue bundle:
+
+```bash
+npm run guardianx -- simulate --target 0x1111111111111111111111111111111111111111
+```
+
+### 4. Start the Mempool & Invariant Listener (`guardianx listen`)
+
+```bash
+npm run guardianx -- listen
+```
+
+### 5. Launch the Interactive Security Dashboard (Optional)
+
+```bash
+npm run dev
+# Open http://localhost:5173
+```
+
+---
+
+## 🛠️ Declarative Configuration (`guardianx.config.ts`)
+
+Define monitored contracts, deterministic state invariants, AI agent hard caps, and emergency circuit-breaker callbacks with full TypeScript autocompletion:
+
+```typescript
+import { defineGuardianXConfig, BuiltInInvariants } from './src/index';
+
+export default defineGuardianXConfig({
+  projectName: 'Omnichain-Core-Vault',
+  network: {
+    chain: 'ethereum',
+    rpcUrl: process.env.ETH_RPC_URL ?? 'https://eth-mainnet.g.alchemy.com/v2/demo',
+    chainId: 1,
+    privateRelayUrl: 'https://relay.flashbots.net',
+    relayProvider: 'flashbots',
+  },
+  contracts: [
+    {
+      name: 'OmnichainLiquidityVault',
+      address: '0x1111111111111111111111111111111111111111',
+      chain: 'ethereum',
+      safeTreasuryAddress: '0x9999999999999999999999999999999999999999',
+    },
+  ],
+  invariants: [
+    // Trigger Tier-3 Circuit Breaker if >15% of vault balance is drained in a single block
+    BuiltInInvariants.maxBalanceDrainPercentage(
+      '0x1111111111111111111111111111111111111111',
+      15,
+      'critical'
+    ),
+    // Protect EIP-1967 Proxy Implementation Slot against unauthorized mutation
+    BuiltInInvariants.immutableStorageSlot(
+      '0x1111111111111111111111111111111111111111',
+      '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc',
+      ['0x9999999999999999999999999999999999999999']
+    ),
+  ],
+  agentGuardrails: {
+    maxSlippageBps: 100, // 1.00% hard cap
+    maxGasBurnWei: 50000000000000000n, // 0.05 ETH ceiling
+    maxTransferValueWei: 10000000000000000000n, // 10 ETH per-tx limit
+    allowedContractWhitelist: [
+      '0x1111111111111111111111111111111111111111',
+      '0x7a250d5630b4cf539739df2c5dacb4c659f2488d',
+    ],
+  },
+  circuitBreaker: {
+    enabled: true,
+    autoPauseOnTier3: true,
+    autoSweepOnTier3: true,
+    safeVaultAddress: '0x9999999999999999999999999999999999999999',
+    maxPriorityFeeGwei: 80,
+  },
+});
+```
+
+---
+
+## 🤖 AI Agent Runtime Guardrail Example
+
+Protect autonomous on-chain agents against prompt injections and hallucinated parameters before signing:
+
+```typescript
+import { AgentGuardrailMiddleware } from './src/index';
+
+const firewall = new AgentGuardrailMiddleware({
+  maxSlippageBps: 100,
+  maxGasBurnWei: 50000000000000000n,
+  maxTransferValueWei: 10000000000000000000n,
+  allowedContractWhitelist: ['0x7a250d5630b4cf539739df2c5dacb4c659f2488d'],
+});
+
+const decision = firewall.verifyAgentToolCall({
+  agentId: 'treasury-rebalancer-01',
+  naturalLanguageObjective: 'Swap 1 ETH for USDC on Uniswap with 0.5% slippage',
+  toolName: 'uniswapSwap',
+  estimatedSlippageBps: 50,
+  tx: {
+    chain: 'ethereum',
+    from: '0xAgentAddress',
+    to: '0x7a250d5630b4cf539739df2c5dacb4c659f2488d',
+    value: 1000000000000000000n,
+    data: '0x7ff36ab500000000000000000000000000000000000000000000000000000000',
+  },
+});
+
+if (!decision.allowed) {
+  throw new Error(`Blocked by GuardianX Agent Firewall: ${decision.semanticVerification.reason}`);
+}
+```
+
+---
+
+## 🧪 Verification & Testing
+
+Run the full build, strict typecheck, linter, and automated test suite:
+
+```bash
+npm run lint        # ESLint strict verification
+npm run typecheck   # TypeScript strict verification (App + SDK)
+npm test            # Node test runner covering all 5 architectural phases
+npm run build       # Compiles SDK (dist/sdk) and Frontend UI (dist/)
+```
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions from security researchers, MEV engineers, and AI safety builders:
+1. Fork the repository and create a feature branch (`git checkout -b feat/custom-invariant`).
+2. Add comprehensive unit tests in `tests/guardianx.test.ts`.
+3. Ensure `npm run lint`, `npm run typecheck`, `npm test`, and `npm run build` pass with zero warnings.
+4. Open a Pull Request detailing the threat model or invariant addressed.
+
+---
+
+## 📄 License
+
+Released under the **MIT License**.
