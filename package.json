@@ -1,6 +1,6 @@
 {
   "name": "guardianx",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Autonomous Web3 Circuit Breaker, Local Fork Proof-of-Exploit Engine, and AI Agent Runtime Firewall",
   "type": "module",
   "main": "./dist/sdk/index.js",
