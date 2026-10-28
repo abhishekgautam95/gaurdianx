@@ -383,3 +383,78 @@ export interface AttackReplayVerificationResult {
   postVaultBalanceWithGuardianEth: string;
   rescuedValueWei: bigint;
 }
+
+/**
+ * Deliverable 2: AI Agent Wallet Wrapper (`createGuardianWallet`) Types for Viem / Ethers
+ */
+export interface WalletSendTransactionParameters {
+  to: string;
+  data?: string;
+  value?: bigint;
+  gas?: bigint;
+  gasLimit?: bigint;
+  maxFeePerGas?: bigint;
+  maxPriorityFeePerGas?: bigint;
+  nonce?: number;
+  /** Agent-stated natural language objective for semantic verification */
+  intentObjective?: string;
+  /** Estimated slippage in basis points (100 = 1.00%) */
+  estimatedSlippageBps?: number;
+}
+
+export interface WalletWriteContractParameters {
+  address: string;
+  functionName: string;
+  args?: unknown[];
+  abi?: unknown[];
+  data?: string;
+  value?: bigint;
+  gas?: bigint;
+  gasLimit?: bigint;
+  maxFeePerGas?: bigint;
+  maxPriorityFeePerGas?: bigint;
+  /** Agent-stated natural language objective for semantic verification */
+  intentObjective?: string;
+  /** Estimated slippage in basis points (100 = 1.00%) */
+  estimatedSlippageBps?: number;
+}
+
+export interface ViemOrEthersWalletClient {
+  account?: { address: string } | string;
+  chain?: { id: number; name?: string };
+  sendTransaction: (args: WalletSendTransactionParameters) => Promise<string>;
+  writeContract?: (args: WalletWriteContractParameters) => Promise<string>;
+}
+
+export interface CreateGuardianWalletOptions {
+  agentId: string;
+  chain?: SupportedChain;
+  chainId?: number;
+  rpcUrl?: string;
+  hardCaps: DeterministicHardCaps;
+  invariants?: InvariantRule[];
+  defaultIntentObjective?: string;
+  /** When true (default), runs local fork invariant simulation before allowing broadcast */
+  runLocalSimulation?: boolean;
+  /** Max risk score allowed before blocking execution (default: 70) */
+  maxAllowedRiskScore?: number;
+}
+
+export interface GuardianProtectedExecutionResult {
+  txHash: string;
+  guardrailDecision: GuardrailDecision;
+  simulationAnalysis?: TransactionAnalysisResult;
+}
+
+export interface GuardianWalletClient<TClient extends ViemOrEthersWalletClient = ViemOrEthersWalletClient> {
+  readonly rawClient: TClient;
+  readonly agentId: string;
+  sendTransaction: (args: WalletSendTransactionParameters) => Promise<string>;
+  writeContract: (args: WalletWriteContractParameters) => Promise<string>;
+  sendTransactionWithReport: (
+    args: WalletSendTransactionParameters
+  ) => Promise<GuardianProtectedExecutionResult>;
+  writeContractWithReport: (
+    args: WalletWriteContractParameters
+  ) => Promise<GuardianProtectedExecutionResult>;
+}

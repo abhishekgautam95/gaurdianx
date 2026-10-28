@@ -11,6 +11,10 @@ export { TransactionAnalyzer } from './core/transactionAnalyzer.js';
 export { defineGuardianXConfig, defaultGuardianXConfig } from './core/config.js';
 export { MockAttackEngine, HISTORICAL_ATTACK_SCENARIOS } from './core/mockAttackEngine.js';
 export { AgentGuardrailMiddleware } from './agents/guardrailMiddleware.js';
+export {
+  createGuardianWallet,
+  GuardianFirewallBlockedError,
+} from './agents/createGuardianWallet.js';
 export { PrivateRelayClient, EMERGENCY_SELECTORS } from './relays/privateRelay.js';
 export {
   LocalPrivateKeySigner,

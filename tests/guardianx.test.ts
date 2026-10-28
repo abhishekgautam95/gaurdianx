@@ -7,6 +7,7 @@ import {
   ActiveMitigationEngine,
   AgentGuardrailMiddleware,
   BuiltInInvariants,
+  GuardianFirewallBlockedError,
   GuardianXCLI,
   InvariantEngine,
   KmsSignerAdapter,
@@ -18,6 +19,7 @@ import {
   RiskTier,
   SimulationRunner,
   TransactionAnalyzer,
+  createGuardianWallet,
   defaultGuardianXConfig,
 } from '../dist/sdk/index.js';
 
@@ -427,6 +429,125 @@ describe('GuardianX Security & Active Defense Suite', () => {
         assert.equal(replay.analysis.mitigationReceipt?.triggered, true);
         assert.ok(replay.rescuedValueWei > 0n);
       }
+    });
+  });
+
+  describe('Deliverable 1 & 2: GuardianXSafeModule.sol & createGuardianWallet Wrapper', () => {
+    const UNISWAP_ROUTER = '0x7a250d5630b4cf539739df2c5dacb4c659f2488d';
+    const PROTECTED_VAULT = '0x1111111111111111111111111111111111111111';
+
+    it('intercepts sendTransaction and writeContract via createGuardianWallet and allows safe agent calls', async () => {
+      const broadcastedTxs: string[] = [];
+
+      const mockViemWalletClient = {
+        account: { address: '0xAgent00000000000000000000000000000000001' },
+        chain: { id: 1, name: 'Ethereum' },
+        sendTransaction: async (args: { to: string; data?: string }) => {
+          broadcastedTxs.push(`send:${args.to}`);
+          return '0x_safe_send_tx_hash';
+        },
+        writeContract: async (args: { address: string; functionName: string }) => {
+          broadcastedTxs.push(`write:${args.address}:${args.functionName}`);
+          return '0x_safe_write_tx_hash';
+        },
+      };
+
+      const guardianWallet = createGuardianWallet(mockViemWalletClient, {
+        agentId: 'defi-rebalancer-agent',
+        hardCaps: {
+          maxSlippageBps: 100,
+          maxGasBurnWei: 50000000000000000n,
+          maxTransferValueWei: 5000000000000000000n, // 5 ETH
+          allowedContractWhitelist: [UNISWAP_ROUTER, PROTECTED_VAULT],
+        },
+      });
+
+      const sendHash = await guardianWallet.sendTransaction({
+        to: PROTECTED_VAULT,
+        value: 1000000000000000000n, // 1 ETH
+        data: '0x',
+        intentObjective: 'Send 1 ETH transfer to vault',
+      });
+      assert.equal(sendHash, '0x_safe_send_tx_hash');
+
+      const writeReport = await guardianWallet.writeContractWithReport({
+        address: UNISWAP_ROUTER,
+        functionName: 'swapExactETHForTokens',
+        value: 1000000000000000000n,
+        estimatedSlippageBps: 50,
+        intentObjective: 'Swap 1 ETH for USDC on Uniswap',
+      });
+      assert.equal(writeReport.txHash, '0x_safe_write_tx_hash');
+      assert.equal(writeReport.guardrailDecision.allowed, true);
+      assert.equal(writeReport.simulationAnalysis?.verdict, 'Safe');
+      assert.equal(broadcastedTxs.length, 2);
+    });
+
+    it('blocks rogue writeContract & exploit payloads before reaching the underlying wallet client', async () => {
+      let broadcastCalled = false;
+
+      const mockViemWalletClient = {
+        account: '0xAgent00000000000000000000000000000000001',
+        sendTransaction: async () => {
+          broadcastCalled = true;
+          return '0x_should_never_happen';
+        },
+      };
+
+      const guardianWallet = createGuardianWallet(mockViemWalletClient, {
+        agentId: 'compromised-agent',
+        hardCaps: {
+          maxSlippageBps: 100,
+          maxGasBurnWei: 50000000000000000n,
+          maxTransferValueWei: 5000000000000000000n,
+          allowedContractWhitelist: [PROTECTED_VAULT],
+        },
+      });
+
+      // 1. Prompt injection / semantic mismatch on writeContract
+      await assert.rejects(
+        async () => {
+          await guardianWallet.writeContract({
+            address: PROTECTED_VAULT,
+            functionName: 'transferOwnership',
+            intentObjective: 'Swap 1 ETH for USDC',
+          });
+        },
+        (err: unknown) => err instanceof GuardianFirewallBlockedError
+      );
+
+      // 2. Local fork invariant violation (vault drain payload)
+      await assert.rejects(
+        async () => {
+          await guardianWallet.sendTransaction({
+            to: PROTECTED_VAULT,
+            value: 0n,
+            data: '0xa9059cbbdeadbeef', // Passes transfer intent, but triggers 85% drain in local fork simulation
+            intentObjective: 'Transfer tokens from vault',
+          });
+        },
+        (err: unknown) => err instanceof GuardianFirewallBlockedError
+      );
+
+      assert.equal(broadcastCalled, false);
+    });
+
+    it('verifies GuardianXSafeModule.sol and Foundry test suite structure', () => {
+      const contractSource = fs.readFileSync(
+        path.join(process.cwd(), 'contracts/GuardianXSafeModule.sol'),
+        'utf8'
+      );
+      const testSource = fs.readFileSync(
+        path.join(process.cwd(), 'tests/contracts/GuardianXSafeModule.t.sol'),
+        'utf8'
+      );
+
+      assert.ok(contractSource.includes('contract GuardianXSafeModule'));
+      assert.ok(contractSource.includes('address public immutable SAFE_TREASURY'));
+      assert.ok(contractSource.includes('function triggerEmergencyPause'));
+      assert.ok(contractSource.includes('function sweepNativeToSafeTreasury'));
+      assert.ok(contractSource.includes('function sweepERC20ToSafeTreasury'));
+      assert.ok(testSource.includes('contract GuardianXSafeModuleTest is Test'));
     });
   });
 });
