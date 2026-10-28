@@ -6,6 +6,7 @@
 export * from './types/index.js';
 export { InvariantEngine, BuiltInInvariants } from './core/invariantEngine.js';
 export { SimulationRunner } from './core/simulationRunner.js';
+export { EvmRpcForkAdapter } from './core/evmRpcForkAdapter.js';
 export { ActiveMitigationEngine } from './core/circuitBreaker.js';
 export { TransactionAnalyzer } from './core/transactionAnalyzer.js';
 export { defineGuardianXConfig, defaultGuardianXConfig } from './core/config.js';
@@ -16,6 +17,10 @@ export {
   GuardianFirewallBlockedError,
 } from './agents/createGuardianWallet.js';
 export { PrivateRelayClient, EMERGENCY_SELECTORS } from './relays/privateRelay.js';
+export {
+  MultiBuilderBroadcaster,
+  DEFAULT_BUILDER_ENDPOINTS,
+} from './relays/multiBuilderBroadcaster.js';
 export {
   LocalPrivateKeySigner,
   KmsSignerAdapter,

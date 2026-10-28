@@ -477,3 +477,43 @@ export interface GuardianWalletClient<TClient extends ViemOrEthersWalletClient =
     args: WalletWriteContractParameters
   ) => Promise<GuardianProtectedExecutionResult>;
 }
+
+/**
+ * Step 2: Live RPC `debug_traceCall` (`prestateTracer` diffMode) Types
+ */
+export interface PrestateAccountDiff {
+  balance?: string;
+  nonce?: number;
+  code?: string;
+  storage?: Record<string, string>;
+}
+
+export interface PrestateTracerDiffResult {
+  pre: Record<string, PrestateAccountDiff>;
+  post: Record<string, PrestateAccountDiff>;
+}
+
+export type EvmRpcJsonTransport = (
+  rpcUrl: string,
+  method: string,
+  params: unknown[]
+) => Promise<unknown>;
+
+/**
+ * Step 4: Multi-Builder Fan-Out Broadcast Types (Flashbots + Titan + Beaverbuild + MEV-Blocker)
+ */
+export interface BuilderRelayEndpoint {
+  name: 'flashbots' | 'titan' | 'beaverbuild' | 'mev-blocker' | string;
+  url: string;
+  estimatedMarketSharePct: number;
+}
+
+export interface MultiBuilderBroadcastReceipt {
+  bundleHash: string;
+  targetBlockNumber: number;
+  acceptedBuilders: string[];
+  failedBuilders: string[];
+  combinedBlockInclusionProbabilityPct: number;
+  builderResponses: PrivateRelayBundleResponse[];
+  timestamp: string;
+}

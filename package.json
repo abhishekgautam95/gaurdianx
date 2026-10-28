@@ -16,6 +16,29 @@
   "bin": {
     "guardianx": "./dist/sdk/cli/index.js"
   },
+  "files": [
+    "dist/sdk",
+    "contracts",
+    "guardianx.config.ts",
+    "action.yml",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/abhishekgautam95/gaurdianx.git"
+  },
+  "keywords": [
+    "web3-security",
+    "circuit-breaker",
+    "flashbots",
+    "ai-agent-guardrails",
+    "foundry",
+    "safe-module"
+  ],
+  "license": "MIT",
   "scripts": {
     "dev": "vite",
     "build:sdk": "tsc -p tsconfig.sdk.json",

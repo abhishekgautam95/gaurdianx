@@ -7,12 +7,14 @@ import {
   ActiveMitigationEngine,
   AgentGuardrailMiddleware,
   BuiltInInvariants,
+  EvmRpcForkAdapter,
   GuardianFirewallBlockedError,
   GuardianXCLI,
   InvariantEngine,
   KmsSignerAdapter,
   LocalPrivateKeySigner,
   MockAttackEngine,
+  MultiBuilderBroadcaster,
   MultisigSafeSignerAdapter,
   PrivateRelayClient,
   ResilientRpcManager,
@@ -548,6 +550,88 @@ describe('GuardianX Security & Active Defense Suite', () => {
       assert.ok(contractSource.includes('function sweepNativeToSafeTreasury'));
       assert.ok(contractSource.includes('function sweepERC20ToSafeTreasury'));
       assert.ok(testSource.includes('contract GuardianXSafeModuleTest is Test'));
+    });
+
+    it('supports one-line policy object overload in createGuardianWallet({ client, policy })', async () => {
+      const mockClient = {
+        account: '0xAgent00000000000000000000000000000000001',
+        sendTransaction: async () => '0x_policy_overload_tx_hash',
+      };
+
+      const guardianWallet = createGuardianWallet({
+        client: mockClient,
+        policy: {
+          maxSlippageBps: 100,
+          maxDailySpendWei: 1000000000000000000n,
+          allowedContracts: [PROTECTED_VAULT],
+        },
+      });
+
+      const txHash = await guardianWallet.sendTransaction({
+        to: PROTECTED_VAULT,
+        value: 100000000000000000n, // 0.1 ETH
+      });
+      assert.equal(txHash, '0x_policy_overload_tx_hash');
+    });
+
+    it('parses debug_traceCall prestateTracer diffs via EvmRpcForkAdapter', async () => {
+      const adapter = new EvmRpcForkAdapter('https://rpc.example.com', async (_url, method) => {
+        assert.equal(method, 'debug_traceCall');
+        return {
+          pre: {
+            [PROTECTED_VAULT]: {
+              balance: '0x3635c9adc5dea00000', // 1000 ETH
+              storage: { '0x01': '0x00' },
+            },
+          },
+          post: {
+            [PROTECTED_VAULT]: {
+              balance: '0x56bc75e2d63100000', // 100 ETH (900 ETH drained)
+              storage: { '0x01': '0x01' },
+            },
+          },
+        };
+      });
+
+      const { preState, postState } = await adapter.traceTransactionStateDiff(
+        {
+          chain: 'ethereum',
+          from: '0xAttacker',
+          to: PROTECTED_VAULT,
+          value: 0n,
+          data: '0x853828b6',
+        },
+        20500000
+      );
+
+      assert.equal(preState.balances[PROTECTED_VAULT], 1000n * 10n ** 18n);
+      assert.equal(postState.balances[PROTECTED_VAULT], 100n * 10n ** 18n);
+      assert.equal(postState.storageSlots[PROTECTED_VAULT]?.['0x01'], '0x01');
+    });
+
+    it('fans out emergency bundles across Flashbots, Titan, Beaverbuild, and MEV-Blocker via MultiBuilderBroadcaster', async () => {
+      const broadcaster = new MultiBuilderBroadcaster({ defaultPriorityFeeGwei: 90 });
+      const relay = new PrivateRelayClient({
+        relayName: 'flashbots',
+        relayUrl: 'https://relay.flashbots.net',
+      });
+
+      const pauseTx = relay.buildEmergencyTransaction({
+        action: 'pause',
+        targetContract: PROTECTED_VAULT,
+      });
+
+      const receipt = await broadcaster.broadcastRescueBundle({
+        targetBlockNumber: 20500010,
+        emergencyTransactions: [pauseTx],
+      });
+
+      assert.equal(receipt.acceptedBuilders.length, 4);
+      assert.deepEqual(
+        receipt.acceptedBuilders.sort(),
+        ['beaverbuild', 'flashbots', 'mev-blocker', 'titan']
+      );
+      assert.ok(receipt.combinedBlockInclusionProbabilityPct >= 90);
     });
   });
 });
